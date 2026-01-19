@@ -5,6 +5,7 @@ us['musescoreDirectPNGPath'] = '/Applications/MuseScore 4.app/Contents/MacOS/msc
 us['musicxmlPath'] = '/Applications/MuseScore 4.app/Contents/MacOS/mscore'
 
 import os
+import json
 import music21 as m21
 
 
@@ -12,6 +13,9 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 KERN_DATASET_PATH = os.path.join(BASE_DIR, "deutschl", "test")
 dataset_path = KERN_DATASET_PATH
 SAVE_DIR = "dataset"
+SINGLE_FILE_DATASET = "file_dataset"
+MAPPING_PATH = "mapping.json"
+SEQUENCE_LENGTH = 64
 os.makedirs(SAVE_DIR, exist_ok=True)
 
 ACCEPTABLE_DURATIONS = [
@@ -39,9 +43,9 @@ def load_songs_in_kern(dataset_path):
                 songs.append(song)
     return songs
 
-def has_acceptable_duration(song, acceptable_duration):
+def has_acceptable_duration(song, acceptable_durations):
     for note in song.flat.notesAndRests:
-        if note.duration.quarterLength not in acceptable_duration:
+        if note.duration.quarterLength not in acceptable_durations:
             return False
     return True
 
@@ -123,13 +127,51 @@ def preprocess(dataset_path):
         with open(save_path, "w") as fp:
             fp.write(encoded_song)
 
+def load(file_path):
+    with open(file_path, "r") as fp:
+        song = fp.read()
+    return song
+
+def create_single_file_dataset(dataset_path, file_dataset_path, sequence_length):
+    new_song_delimiter = "/ " * sequence_length
+    songs = ""
+
+    # load encoded songs and add delimiters
+    for path, _, files in os.walk(dataset_path):
+        for file in files:
+            file_path = os.path.join(path, file)
+            song = load(file_path)
+            songs = songs + song + " " + new_song_delimiter
+
+    songs = songs[:-1]
+
+    # save strings that contains all data
+    with open(file_dataset_path, "w") as fp:
+        fp.write(songs)
+
+    return songs
+
+def create_mapping(songs, mapping_path):
+    mappings = {}
+
+    # identify the vocabulary
+    songs = songs.split()
+    vocabulary = list(set(songs))
+
+    # create mappings
+    for i, symbol in enumerate(vocabulary):
+        mappings[symbol] = i
+
+    # save vocabulary to json file
+    with open(mapping_path, "w") as fp:
+        json.dump(mappings, fp, indent=4)
+
+def main():
+    preprocess(KERN_DATASET_PATH)
+    songs = create_single_file_dataset(SAVE_DIR, SINGLE_FILE_DATASET, SEQUENCE_LENGTH)
+    create_mapping(songs, MAPPING_PATH)
+
 
 if __name__ == "__main__":
-    songs = load_songs_in_kern(KERN_DATASET_PATH)
-    print(f"Loaded {len(songs)} songs.")
-    song = songs[0]
-
-    preprocess(KERN_DATASET_PATH)
-    
-    transposed_song = transpose(song)
-    transposed_song.show()
+    main()
+  
