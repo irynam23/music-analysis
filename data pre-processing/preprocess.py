@@ -12,7 +12,7 @@ import tensorflow as tf
 from tensorflow import keras
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-KERN_DATASET_PATH = os.path.join(BASE_DIR, "deutschl", "test")
+KERN_DATASET_PATH = os.path.join(BASE_DIR, "deutschl", "erk")
 dataset_path = KERN_DATASET_PATH
 SAVE_DIR = "dataset"
 SINGLE_FILE_DATASET = "file_dataset"
