@@ -7,7 +7,9 @@ us['musicxmlPath'] = '/Applications/MuseScore 4.app/Contents/MacOS/mscore'
 import os
 import json
 import music21 as m21
-
+import numpy as np
+import tensorflow as tf
+from tensorflow import keras
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 KERN_DATASET_PATH = os.path.join(BASE_DIR, "deutschl", "test")
@@ -166,10 +168,55 @@ def create_mapping(songs, mapping_path):
     with open(mapping_path, "w") as fp:
         json.dump(mappings, fp, indent=4)
 
+def convert_songs_to_int(songs):
+    int_songs = []
+
+    # load the mappings
+    with open(MAPPING_PATH, "r") as fp:
+        mappings = json.load(fp)
+
+    # cast songs string to a list
+    songs = songs.split()
+
+    # map songs to int
+    for symbol in songs:
+        int_songs.append(mappings[symbol])
+
+    return int_songs
+
+def generate_training_sequences(sequence_length):
+
+    # [11, 12, 13, 14, ...] -> [11, 12], t: 13; i: [12, 13], t: 14
+
+    # load songs and map them to int
+    songs = load(SINGLE_FILE_DATASET)
+    int_songs = convert_songs_to_int(songs)
+
+    # generate the training sequences
+    # 100 symbols, 64 sl, 100 - 64 = 36 sequences
+    inputs = []
+    targets = []
+    
+    num_sequences = len(int_songs) - sequence_length
+    for i in range(num_sequences):
+        inputs.append(int_songs[i:i+sequence_length])
+        targets.append(int_songs[i:i+sequence_length])
+
+    # one-hot encode the sequences
+    # inputs: (# of sequences, sequence length, vocabulary size)
+    # [ [0, 1, 2] [1, 1, 2] ] -> [ [ [1, 0, 0], [0, 1, 0], [0, 0, 1] ], [ ] ]
+    vocabulary_size = len(set(int_songs))
+    inputs = keras.utils.to_categorical(inputs, num_classes=vocabulary_size)
+    targets = np.array(targets)
+
+    return inputs, targets
+
 def main():
     preprocess(KERN_DATASET_PATH)
     songs = create_single_file_dataset(SAVE_DIR, SINGLE_FILE_DATASET, SEQUENCE_LENGTH)
     create_mapping(songs, MAPPING_PATH)
+    inputs, targets = generate_training_sequences(SEQUENCE_LENGTH)
+    a = 1
 
 
 if __name__ == "__main__":
