@@ -200,7 +200,7 @@ def generate_training_sequences(sequence_length):
     num_sequences = len(int_songs) - sequence_length
     for i in range(num_sequences):
         inputs.append(int_songs[i:i+sequence_length])
-        targets.append(int_songs[i:i+sequence_length])
+        targets.append(int_songs[i+sequence_length])
 
     # one-hot encode the sequences
     # inputs: (# of sequences, sequence length, vocabulary size)
